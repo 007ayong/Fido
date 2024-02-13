@@ -514,8 +514,8 @@ function Check-Locale
 		# Also: "Hi Microsoft. You sure have A LOT OF RESOURCES TO WASTE to have assigned folks of yours to cripple scripts
 		# that merely exist because you have chosen to make the user experience from your download website utterly subpar.
 		# And while I am glad senpai noticed me (UwU), I feel compelled to ask: Don't you guys have better things to do?"
-		curl -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 $url | Out-Null
-		curl -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 -UserAgent $UserAgent $url | Out-Null
+		Invoke-WebRequest  -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 $url | Out-Null
+		Invoke-WebRequest  -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 -UserAgent $UserAgent $url | Out-Null
 	} catch {
 		# Of course PowerShell 7 had to BREAK $_.Exception.Status on timeouts...
 		if ($_.Exception.Status -eq "Timeout" -or $_.Exception.GetType().Name -eq "TaskCanceledException") {
@@ -575,7 +575,7 @@ function Get-Windows-Languages([int]$SelectedVersion, [int]$SelectedEdition)
 			Write-Host Querying $url
 		}
 		try {
-			curl -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 -UserAgent $UserAgent $url | Out-Null
+			Invoke-WebRequest  -UseBasicParsing -TimeoutSec $DefaultTimeout -MaximumRedirection 0 -UserAgent $UserAgent $url | Out-Null
 		} catch {
 			Error($_.Exception.Message)
 			return @()
@@ -594,7 +594,7 @@ function Get-Windows-Languages([int]$SelectedVersion, [int]$SelectedEdition)
 
 		$script:SelectedIndex = 0
 		try {
-			$r = curl -Method Post -UseBasicParsing -TimeoutSec $DefaultTimeout -UserAgent $UserAgent -SessionVariable "Session" $url
+			$r = Invoke-WebRequest  -Method Post -UseBasicParsing -TimeoutSec $DefaultTimeout -UserAgent $UserAgent -SessionVariable "Session" $url
 			if ($r -match "errorModalMessage") {
 				Throw-Error -Req $r -Alt "Could not retrieve languages from server"
 			}
@@ -684,7 +684,7 @@ function Get-Windows-Download-Links([int]$SelectedVersion, [int]$SelectedRelease
 			$Is64 = [Environment]::Is64BitOperatingSystem
 			# Must add a referer for this request, else Microsoft's servers will deny it
 			$ref = "https://www.microsoft.com/software-download/windows11"
-			$r = curl -Method Post -Headers @{ "Referer" = $ref } -UseBasicParsing -TimeoutSec $DefaultTimeout -UserAgent $UserAgent -WebSession $Session $url
+			$r = Invoke-WebRequest  -Method Post -Headers @{ "Referer" = $ref } -UseBasicParsing -TimeoutSec $DefaultTimeout -UserAgent $UserAgent -WebSession $Session $url
 			if ($r -match "errorModalMessage") {
 				$Alt = [regex]::Match($r.Content, '<p id="errorModalMessage">(.+?)<\/p>').Groups[1].Value -replace "<[^>]+>" -replace "\s+", " " -replace "\?\?\?", "-"
 				$Alt = [System.Text.Encoding]::UTF8.GetString([byte[]][char[]]$Alt)
@@ -737,7 +737,7 @@ function Process-Download-Link([string]$Url)
 				$pattern = '.*\/(.*\.iso).*'
 				$File = [regex]::Match($Url, $pattern).Groups[1].Value
 				# PowerShell implicit conversions are iffy, so we need to force them...
-				$str_size = (curl -UseBasicParsing -TimeoutSec $DefaultTimeout -Uri $Url -Method Head).Headers.'Content-Length'
+				$str_size = (Invoke-WebRequest  -UseBasicParsing -TimeoutSec $DefaultTimeout -Uri $Url -Method Head).Headers.'Content-Length'
 				$tmp_size = [uint64]::Parse($str_size)
 				$Size = Size-To-Human-Readable $tmp_size
 				Write-Host "Downloading '$File' ($Size)..."
